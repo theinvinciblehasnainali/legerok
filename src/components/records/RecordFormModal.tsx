@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { X } from "lucide-react";
 
 interface RecordFormModalProps {
@@ -200,19 +201,19 @@ export function RecordFormModal({
         );
       case "single_select":
         return (
-          <select
+          <Select
             id={`rec-${field.key}`}
             value={typeof val === "string" ? val : ""}
-            onChange={(e) => setValue(field.key, e.target.value)}
-            className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-          >
-            <option value="">Select an option...</option>
-            {(opts.choices ?? []).map((choice) => (
-              <option key={choice} value={choice}>
-                {choice}
-              </option>
-            ))}
-          </select>
+            onValueChange={(next) => setValue(field.key, next)}
+            placeholder="Select an option..."
+            options={[
+              { value: "", label: "None" },
+              ...(opts.choices ?? []).map((choice) => ({
+                value: choice,
+                label: choice,
+              })),
+            ]}
+          />
         );
       case "multi_select": {
         const selected = Array.isArray(val) ? val : [];

@@ -7,6 +7,7 @@ import { exportBoard } from "@/lib/spreadsheet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FieldManagerModal } from "@/components/fields/FieldManagerModal";
 import { RecordFormModal } from "@/components/records/RecordFormModal";
@@ -281,21 +282,19 @@ export function BoardView({ boardId, onBoardsChanged }: BoardViewProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <select
+            <Select
+              className="w-48"
               value={filterFieldKey}
-              onChange={(e) => {
-                setFilterFieldKey(e.target.value);
+              onValueChange={(val) => {
+                setFilterFieldKey(val);
                 setFilterValue("");
               }}
-              className="h-9 rounded-4xl border border-input bg-background px-3 text-sm outline-none"
-            >
-              <option value="">Filter by field...</option>
-              {fields.map((f) => (
-                <option key={f.id} value={f.key}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
+              placeholder="Filter by field..."
+              options={[
+                { value: "", label: "All fields (no filter)" },
+                ...fields.map((f) => ({ value: f.key, label: f.name })),
+              ]}
+            />
 
             {filterFieldKey && (
               <Input

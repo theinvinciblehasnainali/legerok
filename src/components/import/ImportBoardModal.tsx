@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { FileSpreadsheet, Upload, X } from "lucide-react";
 
 const IMPORT_TYPES: { value: FieldType; label: string }[] = [
@@ -215,22 +216,15 @@ export function ImportBoardModal({
                         }
                         className="h-8 flex-1"
                       />
-                      <select
+                      <Select
+                        className="w-40 shrink-0"
                         value={col.fieldType}
                         disabled={!col.include}
-                        onChange={(e) =>
-                          updateColumn(idx, {
-                            fieldType: e.target.value as FieldType,
-                          })
+                        onValueChange={(next) =>
+                          updateColumn(idx, { fieldType: next })
                         }
-                        className="h-8 rounded-4xl border border-input bg-background px-2.5 text-xs outline-none"
-                      >
-                        {IMPORT_TYPES.map((t) => (
-                          <option key={t.value} value={t.value}>
-                            {t.label}
-                          </option>
-                        ))}
-                      </select>
+                        options={IMPORT_TYPES}
+                      />
                     </div>
                   ))}
                 </div>

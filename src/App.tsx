@@ -7,6 +7,7 @@ import { createLegeRokSDK } from "@/sdk/createSdk";
 import { Sidebar, type ActiveRoute } from "@/components/layout/Sidebar";
 import { BoardList } from "@/components/boards/BoardList";
 import { BoardView } from "@/components/boards/BoardView";
+import { CreateBoardModal } from "@/components/boards/CreateBoardModal";
 import { ModulesView } from "@/components/modules/ModulesView";
 import { ImportBoardModal } from "@/components/import/ImportBoardModal";
 
@@ -15,6 +16,7 @@ function App() {
   const [loadingBoards, setLoadingBoards] = useState(true);
   const [enabledModuleIds, setEnabledModuleIds] = useState<string[]>([]);
   const [route, setRoute] = useState<ActiveRoute>({ type: "home" });
+  const [createBoardOpen, setCreateBoardOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
   const sdk = useMemo(() => createLegeRokSDK(), []);
@@ -99,6 +101,7 @@ function App() {
         loading={loadingBoards}
         onOpenBoard={(boardId) => setRoute({ type: "board", boardId })}
         onBoardsChanged={refreshBoards}
+        onOpenCreate={() => setCreateBoardOpen(true)}
         onOpenImport={() => setImportOpen(true)}
       />
     );
@@ -111,9 +114,20 @@ function App() {
         activeModules={activeModules}
         route={route}
         onNavigate={setRoute}
+        onOpenCreateBoard={() => setCreateBoardOpen(true)}
         onOpenImport={() => setImportOpen(true)}
       />
       <main className="flex-1 overflow-y-auto">{renderMain()}</main>
+
+      <CreateBoardModal
+        open={createBoardOpen}
+        onClose={() => setCreateBoardOpen(false)}
+        onCreated={async (boardId) => {
+          setCreateBoardOpen(false);
+          await refreshBoards();
+          setRoute({ type: "board", boardId });
+        }}
+      />
 
       <ImportBoardModal
         open={importOpen}

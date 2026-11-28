@@ -21,6 +21,7 @@ interface SidebarProps {
   activeModules: LegeRokModule[];
   route: ActiveRoute;
   onNavigate: (route: ActiveRoute) => void;
+  onOpenCreateBoard: () => void;
   onOpenImport: () => void;
 }
 
@@ -29,6 +30,7 @@ export function Sidebar({
   activeModules,
   route,
   onNavigate,
+  onOpenCreateBoard,
   onOpenImport,
 }: SidebarProps) {
   return (
@@ -57,8 +59,8 @@ export function Sidebar({
             </span>
             <button
               type="button"
-              onClick={() => onNavigate({ type: "home" })}
-              title="All boards / Create board"
+              onClick={onOpenCreateBoard}
+              title="Create new board"
               className="p-1 rounded-md hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
             >
               <Plus className="size-3.5" />

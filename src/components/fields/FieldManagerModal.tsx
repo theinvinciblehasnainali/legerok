@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2, X } from "lucide-react";
 
@@ -252,19 +253,13 @@ export function FieldManagerModal({
 
             <div className="space-y-1.5">
               <Label htmlFor="field-type">Field type</Label>
-              <select
+              <Select
                 id="field-type"
                 value={type}
-                onChange={(e) => setType(e.target.value as FieldType)}
+                onValueChange={setType}
                 disabled={saving}
-                className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              >
-                {FIELD_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
+                options={FIELD_TYPES}
+              />
             </div>
 
             {(type === "single_select" || type === "multi_select") && (

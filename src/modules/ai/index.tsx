@@ -11,9 +11,10 @@ import {
 } from "./provider";
 import { getModuleStates } from "@/lib/modules";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Bot, Check, Send, Settings, ShieldAlert, X } from "lucide-react";
 
 interface PendingConfirmation {
@@ -207,51 +208,64 @@ function AiAssistantView({ sdk: _sdk }: { sdk: LegeRokSDK }) {
       </div>
 
       {showSettings && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">BYOK Provider Settings</CardTitle>
-            <CardDescription>
-              Your API key is stored locally in LegeRok&apos;s SQLite database.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Provider</Label>
-                <select
-                  value={config.provider}
-                  onChange={(e) => {
-                    const p = e.target.value as AiConfig["provider"];
-                    const preset = AI_PROVIDER_PRESETS.find((x) => x.id === p);
-                    setConfig((prev) => ({
-                      ...prev,
-                      provider: p,
-                      baseUrl:
-                        preset && p !== "custom" ? preset.baseUrl : prev.baseUrl,
-                      model:
-                        preset && p !== "custom"
-                          ? preset.defaultModel
-                          : prev.model,
-                    }));
-                  }}
-                  className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm outline-none"
-                >
-                  {AI_PROVIDER_PRESETS.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-[1px] p-4"
+          onClick={() => setShowSettings(false)}
+        >
+          <Card
+            className="w-full max-w-lg shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+              <div>
+                <CardTitle className="text-base">BYOK Provider Settings</CardTitle>
+                <CardDescription>
+                  Your API key is stored locally in LegeRok&apos;s SQLite database.
+                </CardDescription>
               </div>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setShowSettings(false)}
+              >
+                <X className="size-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Provider</Label>
+                  <Select
+                    value={config.provider}
+                    onValueChange={(p) => {
+                      const preset = AI_PROVIDER_PRESETS.find((x) => x.id === p);
+                      setConfig((prev) => ({
+                        ...prev,
+                        provider: p,
+                        baseUrl:
+                          preset && p !== "custom" ? preset.baseUrl : prev.baseUrl,
+                        model:
+                          preset && p !== "custom"
+                            ? preset.defaultModel
+                            : prev.model,
+                      }));
+                    }}
+                    options={AI_PROVIDER_PRESETS.map((p) => ({
+                      value: p.id,
+                      label: p.label,
+                    }))}
+                  />
+                </div>
 
-              <div className="space-y-1.5">
-                <Label>Model</Label>
-                <Input
-                  value={config.model}
-                  onChange={(e) =>
-                    setConfig((prev) => ({ ...prev, model: e.target.value }))
-                  }
-                />
+                <div className="space-y-1.5">
+                  <Label>Model</Label>
+                  <Input
+                    value={config.model}
+                    onChange={(e) =>
+                      setConfig((prev) => ({ ...prev, model: e.target.value }))
+                    }
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -275,25 +289,35 @@ function AiAssistantView({ sdk: _sdk }: { sdk: LegeRokSDK }) {
                   }
                 />
               </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2">
+            </CardContent>
+            <CardFooter className="flex items-center justify-end gap-2 border-t pt-4">
               {savedNotice && (
                 <span className="text-xs text-primary">Saved!</span>
               )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSettings(false)}
+              >
+                Close
+              </Button>
               <Button
                 size="sm"
                 onClick={async () => {
                   await saveAiConfig(config);
                   setSavedNotice(true);
-                  setTimeout(() => setSavedNotice(false), 2000);
+                  setTimeout(() => {
+                    setSavedNotice(false);
+                    setShowSettings(false);
+                  }, 600);
                 }}
               >
                 Save Settings
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardFooter>
+          </Card>
+        </div>
       )}
 
       {/* Chat Transcript */}

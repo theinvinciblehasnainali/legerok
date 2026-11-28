@@ -18,12 +18,12 @@ import {
 } from "../db";
 import { parseRecordData } from "@/lib/records";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Play, Plus, Send, Trash2 } from "lucide-react";
+import { Play, Plus, Send, Trash2, X } from "lucide-react";
 
 interface CampaignsViewProps {
   sdk: LegeRokSDK;
@@ -49,7 +49,8 @@ export function CampaignsView({
   onGoToOutbox,
 }: CampaignsViewProps) {
   const [boards, setBoards] = useState<Board[]>([]);
-  const [showCreate, setShowCreate] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [stepModalOpen, setStepModalOpen] = useState(false);
 
   const [name, setName] = useState("");
   const [boardId, setBoardId] = useState("");
@@ -124,7 +125,7 @@ export function CampaignsView({
         email_field_key: emailFieldKey,
       });
       setName("");
-      setShowCreate(false);
+      setCreateModalOpen(false);
       await onChanged();
       setSelectedCampaignId(created.id);
     } finally {
@@ -147,6 +148,7 @@ export function CampaignsView({
       setStepSubject("");
       setStepBody("");
       setStepDelayDays(steps.length === 0 ? 0 : 3);
+      setStepModalOpen(false);
       const updated = await getSequenceSteps(selectedCampaign.id);
       setSteps(updated);
     } finally {
@@ -226,104 +228,22 @@ export function CampaignsView({
             Link a LegeRok board to a mailbox and define multi-step email sequences.
           </p>
         </div>
-        <Button size="sm" onClick={() => setShowCreate((v) => !v)}>
+        <Button size="sm" onClick={() => setCreateModalOpen(true)}>
           <Plus className="size-4" />
-          {showCreate ? "Close" : "New Campaign"}
+          New Campaign
         </Button>
       </div>
 
-      {showCreate && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Create Campaign</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreateCampaign} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="camp-name">Campaign Name</Label>
-                  <Input
-                    id="camp-name"
-                    placeholder="e.g. Agency Outreach Q4"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="camp-mode">Sending Mode</Label>
-                  <Select
-                    id="camp-mode"
-                    value={mode}
-                    onValueChange={setMode}
-                    options={[
-                      { value: "hitl", label: "Review & Approve (HITL)" },
-                      { value: "auto", label: "Auto-Send on Schedule" },
-                    ]}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="camp-board">Source Board</Label>
-                  <Select
-                    id="camp-board"
-                    value={boardId}
-                    onValueChange={setBoardId}
-                    placeholder="Select a board..."
-                    options={boards.map((b) => ({
-                      value: b.id,
-                      label: b.name,
-                    }))}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="camp-email-field">Email Field</Label>
-                  <Select
-                    id="camp-email-field"
-                    value={emailFieldKey}
-                    onValueChange={setEmailFieldKey}
-                    placeholder="Select email field..."
-                    options={boardFields.map((f) => ({
-                      value: f.key,
-                      label: `${f.name} (${f.key})`,
-                    }))}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="camp-mailbox">Sender Mailbox</Label>
-                  <Select
-                    id="camp-mailbox"
-                    value={mailboxId}
-                    onValueChange={setMailboxId}
-                    placeholder="Select mailbox..."
-                    options={mailboxes.map((m) => ({
-                      value: m.id,
-                      label: `${m.name} (${m.email})`,
-                    }))}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  type="submit"
-                  disabled={creating || !name.trim() || !emailFieldKey}
-                >
-                  {creating ? "Creating..." : "Create Campaign"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
       {campaigns.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No campaigns yet. Click &ldquo;New Campaign&rdquo; to link a board.
+          <CardContent className="py-12 text-center space-y-3">
+            <p className="text-sm text-muted-foreground">
+              No campaigns yet. Click &ldquo;New Campaign&rdquo; to link a board.
+            </p>
+            <Button size="sm" onClick={() => setCreateModalOpen(true)}>
+              <Plus className="size-4" />
+              New Campaign
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -381,14 +301,27 @@ export function CampaignsView({
                       to personalize from board records.
                     </CardDescription>
                   </div>
-                  <Button
-                    size="sm"
-                    disabled={generating || steps.length === 0}
-                    onClick={() => void handleGenerateQueue()}
-                  >
-                    <Play className="size-3.5" />
-                    {generating ? "Queueing..." : "Queue from Board"}
-                  </Button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setStepDelayDays(steps.length === 0 ? 0 : 3);
+                        setStepModalOpen(true);
+                      }}
+                    >
+                      <Plus className="size-3.5" />
+                      Add Step
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={generating || steps.length === 0}
+                      onClick={() => void handleGenerateQueue()}
+                    >
+                      <Play className="size-3.5" />
+                      {generating ? "Queueing..." : "Queue from Board"}
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {notice && (
@@ -401,7 +334,22 @@ export function CampaignsView({
                     </div>
                   )}
 
-                  {steps.length > 0 && (
+                  {steps.length === 0 ? (
+                    <div className="py-8 text-center text-sm text-muted-foreground border rounded-xl space-y-2">
+                      <p>No sequence steps yet.</p>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => {
+                          setStepDelayDays(0);
+                          setStepModalOpen(true);
+                        }}
+                      >
+                        <Plus className="size-3.5" />
+                        Add First Step
+                      </Button>
+                    </div>
+                  ) : (
                     <div className="space-y-2">
                       {steps.map((step, i) => (
                         <div
@@ -436,55 +384,215 @@ export function CampaignsView({
                       ))}
                     </div>
                   )}
-
-                  <form
-                    onSubmit={handleAddStep}
-                    className="space-y-3 border rounded-xl p-4 bg-card"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium">
-                        Add Sequence Step #{steps.length + 1}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="step-delay" className="text-xs">
-                          Delay (days)
-                        </Label>
-                        <Input
-                          id="step-delay"
-                          type="number"
-                          min={0}
-                          value={stepDelayDays}
-                          onChange={(e) =>
-                            setStepDelayDays(Number(e.target.value))
-                          }
-                          className="w-20 h-8"
-                        />
-                      </div>
-                    </div>
-
-                    <Input
-                      placeholder="Subject (e.g. Quick question about {{company}})"
-                      value={stepSubject}
-                      onChange={(e) => setStepSubject(e.target.value)}
-                      required
-                    />
-                    <textarea
-                      rows={4}
-                      placeholder="Hi {{name}},&#10;&#10;..."
-                      value={stepBody}
-                      onChange={(e) => setStepBody(e.target.value)}
-                      required
-                      className="w-full rounded-xl border border-input bg-input/30 px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                    />
-                    <Button type="submit" size="sm" disabled={addingStep}>
-                      <Plus className="size-3.5" />
-                      {addingStep ? "Adding..." : "Add Step"}
-                    </Button>
-                  </form>
                 </CardContent>
               </Card>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Create Campaign Modal */}
+      {createModalOpen && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-[1px] p-4"
+          onClick={() => setCreateModalOpen(false)}
+        >
+          <Card
+            className="w-full max-w-xl shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+              <div>
+                <CardTitle>Create Campaign</CardTitle>
+                <CardDescription>
+                  Link a LegeRok board to a sender mailbox.
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setCreateModalOpen(false)}
+              >
+                <X className="size-4" />
+              </Button>
+            </CardHeader>
+
+            <form id="create-campaign-form" onSubmit={handleCreateCampaign}>
+              <CardContent className="space-y-4 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="camp-name">Campaign Name</Label>
+                    <Input
+                      id="camp-name"
+                      placeholder="e.g. Agency Outreach Q4"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      autoFocus
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="camp-mode">Sending Mode</Label>
+                    <Select
+                      id="camp-mode"
+                      value={mode}
+                      onValueChange={setMode}
+                      options={[
+                        { value: "hitl", label: "Review & Approve (HITL)" },
+                        { value: "auto", label: "Auto-Send on Schedule" },
+                      ]}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="camp-board">Source Board</Label>
+                    <Select
+                      id="camp-board"
+                      value={boardId}
+                      onValueChange={setBoardId}
+                      placeholder="Select a board..."
+                      options={boards.map((b) => ({
+                        value: b.id,
+                        label: b.name,
+                      }))}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="camp-email-field">Email Field</Label>
+                    <Select
+                      id="camp-email-field"
+                      value={emailFieldKey}
+                      onValueChange={setEmailFieldKey}
+                      placeholder="Select email field..."
+                      options={boardFields.map((f) => ({
+                        value: f.key,
+                        label: `${f.name} (${f.key})`,
+                      }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="camp-mailbox">Sender Mailbox</Label>
+                  <Select
+                    id="camp-mailbox"
+                    value={mailboxId}
+                    onValueChange={setMailboxId}
+                    placeholder="Select mailbox..."
+                    options={mailboxes.map((m) => ({
+                      value: m.id,
+                      label: `${m.name} (${m.email})`,
+                    }))}
+                  />
+                </div>
+              </CardContent>
+
+              <CardFooter className="flex justify-end gap-2 border-t pt-4 mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={creating || !name.trim() || !emailFieldKey}
+                >
+                  {creating ? "Creating..." : "Create Campaign"}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Add Sequence Step Modal */}
+      {stepModalOpen && selectedCampaign && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-[1px] p-4"
+          onClick={() => setStepModalOpen(false)}
+        >
+          <Card
+            className="w-full max-w-xl shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+              <div>
+                <CardTitle>Add Sequence Step #{steps.length + 1}</CardTitle>
+                <CardDescription>
+                  Variables:{" "}
+                  {selectedBoardFields.length > 0
+                    ? selectedBoardFields.map((f) => `{{${f.key}}}`).join(", ")
+                    : "None"}
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setStepModalOpen(false)}
+              >
+                <X className="size-4" />
+              </Button>
+            </CardHeader>
+
+            <form id="add-step-form" onSubmit={handleAddStep}>
+              <CardContent className="space-y-4 pt-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="step-delay">Delay (days from start)</Label>
+                  <Input
+                    id="step-delay"
+                    type="number"
+                    min={0}
+                    value={stepDelayDays}
+                    onChange={(e) => setStepDelayDays(Number(e.target.value))}
+                    className="w-32"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="step-subject">Subject</Label>
+                  <Input
+                    id="step-subject"
+                    placeholder="Quick question about {{company}}"
+                    value={stepSubject}
+                    onChange={(e) => setStepSubject(e.target.value)}
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="step-body">Email Body</Label>
+                  <textarea
+                    id="step-body"
+                    rows={6}
+                    placeholder="Hi {{name}},&#10;&#10;..."
+                    value={stepBody}
+                    onChange={(e) => setStepBody(e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-input bg-input/30 px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  />
+                </div>
+              </CardContent>
+
+              <CardFooter className="flex justify-end gap-2 border-t pt-4 mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStepModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={addingStep}>
+                  <Plus className="size-3.5" />
+                  {addingStep ? "Adding..." : "Add Step"}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
         </div>
       )}
 

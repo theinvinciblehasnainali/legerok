@@ -1,18 +1,17 @@
 import { useState } from "react";
-import { createBoard, deleteBoard } from "@/lib/boards";
+import { deleteBoard } from "@/lib/boards";
 import type { Board } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { ArrowRight, FileSpreadsheet, Trash2 } from "lucide-react";
+import { ArrowRight, FileSpreadsheet, Plus, Trash2 } from "lucide-react";
 
 interface BoardListProps {
   boards: Board[];
   loading: boolean;
   onOpenBoard: (boardId: string) => void;
   onBoardsChanged: () => Promise<void>;
+  onOpenCreate: () => void;
   onOpenImport: () => void;
 }
 
@@ -21,28 +20,10 @@ export function BoardList({
   loading,
   onOpenBoard,
   onBoardsChanged,
+  onOpenCreate,
   onOpenImport,
 }: BoardListProps) {
-  const [newBoardName, setNewBoardName] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Board | null>(null);
-
-  async function handleCreateBoard(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newBoardName.trim()) return;
-
-    setIsCreating(true);
-    try {
-      const created = await createBoard(newBoardName.trim());
-      setNewBoardName("");
-      await onBoardsChanged();
-      onOpenBoard(created.id);
-    } catch (err) {
-      console.error("Failed to create board:", err);
-    } finally {
-      setIsCreating(false);
-    }
-  }
 
   async function handleDeleteConfirmed() {
     if (!confirmDelete) return;
@@ -72,35 +53,17 @@ export function BoardList({
             Local-first data tracker — create a board or import a spreadsheet.
           </p>
         </div>
-        <Button variant="outline" onClick={onOpenImport}>
-          <FileSpreadsheet className="size-4" />
-          Import Spreadsheet
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={onOpenImport}>
+            <FileSpreadsheet className="size-4" />
+            Import Spreadsheet
+          </Button>
+          <Button onClick={onOpenCreate}>
+            <Plus className="size-4" />
+            New Board
+          </Button>
+        </div>
       </div>
-
-      {/* Create Board Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Create a new board</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleCreateBoard} className="flex gap-3 items-end">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="board-name">Board name</Label>
-              <Input
-                id="board-name"
-                placeholder="e.g. Cold Outreach, Station Records"
-                value={newBoardName}
-                onChange={(e) => setNewBoardName(e.target.value)}
-                disabled={isCreating}
-              />
-            </div>
-            <Button type="submit" disabled={isCreating || !newBoardName.trim()}>
-              {isCreating ? "Creating..." : "Create"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
 
       {/* Board List */}
       <div className="space-y-3">
@@ -108,8 +71,20 @@ export function BoardList({
 
         {boards.length === 0 ? (
           <Card>
-            <CardContent className="py-10 text-center text-muted-foreground">
-              No boards yet. Create your first one above or import a spreadsheet.
+            <CardContent className="py-12 text-center space-y-3">
+              <p className="text-muted-foreground">
+                No boards yet. Create your first one or import a spreadsheet.
+              </p>
+              <div className="flex justify-center gap-2">
+                <Button variant="outline" onClick={onOpenImport}>
+                  <FileSpreadsheet className="size-4" />
+                  Import Spreadsheet
+                </Button>
+                <Button onClick={onOpenCreate}>
+                  <Plus className="size-4" />
+                  New Board
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (
