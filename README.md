@@ -1,6 +1,6 @@
-# Legerok
+# LegeRok
 
-Legerok is a local-first desktop data tracker for organizing information into boards. The current version is an early vertical slice: it initializes a local SQLite database, creates boards, lists them, and deletes boards with their associated data.
+LegeRok is a local-first desktop data tracker for organizing information into boards. The current version is an early vertical slice: it initializes a local SQLite database, creates boards, lists them, and deletes boards with their associated data.
 
 The application is built with Tauri 2, React 19, TypeScript, Vite, and Rust. Data stays in the local application database rather than being sent to a hosted service.
 
@@ -121,7 +121,7 @@ Deleting a board is intended to remove its related fields and records through th
 
 ## License
 
-Legerok is available under the [Prosperity Public License 3.0.0](LICENSE).
+LegeRok is available under the [Prosperity Public License 3.0.0](LICENSE).
 
 This is a source-available, noncommercial license, not an OSI-approved open-source license. Personal, educational, research, hobby, and other qualifying noncommercial use is permitted. Commercial use is limited to a 30-day trial per company; continued commercial use requires a separate commercial license from the contributor. See the complete [LICENSE](LICENSE) for the controlling terms.
 
@@ -129,4 +129,4 @@ Third-party dependencies remain under their own licenses. This repository's lice
 
 ## Contributing
 
-By submitting feedback, code, or other contributions, please ensure you have the right to do so. Contributions intended for inclusion in Legerok must be compatible with the repository license and may be used, modified, and distributed by the contributor under the terms of the Prosperity Public License 3.0.0.
+By submitting feedback, code, or other contributions, please ensure you have the right to do so. Contributions intended for inclusion in LegeRok must be compatible with the repository license and may be used, modified, and distributed by the contributor under the terms of the Prosperity Public License 3.0.0.

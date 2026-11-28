@@ -1,0 +1,142 @@
+import { useState } from "react";
+import type { InboxMessage, RelayMailbox } from "../types";
+import { deleteMailboxMessage, fetchMailboxInbox } from "../db";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Inbox, RefreshCw, Trash2 } from "lucide-react";
+
+interface InboxViewProps {
+  mailboxes: RelayMailbox[];
+}
+
+export function InboxView({ mailboxes }: InboxViewProps) {
+  const [selectedId, setSelectedId] = useState(mailboxes[0]?.id ?? "");
+  const [messages, setMessages] = useState<InboxMessage[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmDeleteUid, setConfirmDeleteUid] = useState<number | null>(null);
+
+  const mailbox = mailboxes.find((m) => m.id === selectedId) ?? mailboxes[0];
+
+  async function handleSync() {
+    if (!mailbox) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const list = await fetchMailboxInbox(mailbox, 25);
+      setMessages(list);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteConfirmed() {
+    if (!mailbox || confirmDeleteUid === null) return;
+    try {
+      await deleteMailboxMessage(mailbox, confirmDeleteUid);
+      setMessages((prev) => prev.filter((m) => m.uid !== confirmDeleteUid));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setConfirmDeleteUid(null);
+    }
+  }
+
+  if (mailboxes.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          Connect a mailbox first in the Mailboxes tab to sync your inbox.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <select
+            value={mailbox?.id ?? ""}
+            onChange={(e) => {
+              setSelectedId(e.target.value);
+              setMessages([]);
+            }}
+            className="h-9 rounded-4xl border border-input bg-background px-3 text-sm outline-none"
+          >
+            {mailboxes.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name} ({m.email})
+              </option>
+            ))}
+          </select>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={loading || !mailbox}
+            onClick={() => void handleSync()}
+          >
+            <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
+            {loading ? "Syncing..." : "Sync Inbox"}
+          </Button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="text-sm p-3 rounded-xl border bg-destructive/10 border-destructive/30 text-destructive">
+          {error}
+        </div>
+      )}
+
+      {messages.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground space-y-2">
+            <Inbox className="size-6 mx-auto opacity-40" />
+            <p>Click &ldquo;Sync Inbox&rdquo; to fetch recent messages via IMAP.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {messages.map((msg) => (
+            <Card key={msg.uid}>
+              <CardContent className="py-3.5 flex items-start justify-between gap-4">
+                <div className="min-w-0 space-y-1">
+                  <p className="font-medium text-sm truncate">{msg.subject}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    From: {msg.from} · {msg.date}
+                  </p>
+                  {msg.snippet && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {msg.snippet}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => setConfirmDeleteUid(msg.uid)}
+                  title="Delete from server"
+                >
+                  <Trash2 className="size-3.5 text-destructive" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmDeleteUid !== null}
+        title="Delete message?"
+        description="This will permanently delete the message from the mail server."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => void handleDeleteConfirmed()}
+        onCancel={() => setConfirmDeleteUid(null)}
+      />
+    </div>
+  );
+}

@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
   clearScreen: false,
@@ -22,7 +22,7 @@ export default defineConfig({
   envPrefix: ["VITE_", "TAURI_"],
   build: {
     target: process.env.TAURI_PLATFORM === "windows" ? "chrome105" : "safari13",
-    minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
+    minify: !process.env.TAURI_DEBUG,
     sourcemap: !!process.env.TAURI_DEBUG,
   },
 });
