@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { InboxMessage, RelayMailbox } from "../types";
 import { deleteMailboxMessage, fetchMailboxInbox } from "../db";
 import { Button } from "@/components/ui/button";
@@ -7,20 +7,21 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Inbox, RefreshCw, Trash2 } from "lucide-react";
 
 interface InboxViewProps {
-  mailboxes: RelayMailbox[];
+  mailbox: RelayMailbox;
 }
 
-export function InboxView({ mailboxes }: InboxViewProps) {
-  const [selectedId, setSelectedId] = useState(mailboxes[0]?.id ?? "");
+export function InboxView({ mailbox }: InboxViewProps) {
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDeleteUid, setConfirmDeleteUid] = useState<number | null>(null);
 
-  const mailbox = mailboxes.find((m) => m.id === selectedId) ?? mailboxes[0];
+  useEffect(() => {
+    setMessages([]);
+    setError(null);
+  }, [mailbox.id]);
 
   async function handleSync() {
-    if (!mailbox) return;
     setLoading(true);
     setError(null);
     try {
@@ -34,7 +35,7 @@ export function InboxView({ mailboxes }: InboxViewProps) {
   }
 
   async function handleDeleteConfirmed() {
-    if (!mailbox || confirmDeleteUid === null) return;
+    if (confirmDeleteUid === null) return;
     try {
       await deleteMailboxMessage(mailbox, confirmDeleteUid);
       setMessages((prev) => prev.filter((m) => m.uid !== confirmDeleteUid));
@@ -45,44 +46,21 @@ export function InboxView({ mailboxes }: InboxViewProps) {
     }
   }
 
-  if (mailboxes.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          Connect a mailbox first in the Mailboxes tab to sync your inbox.
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <select
-            value={mailbox?.id ?? ""}
-            onChange={(e) => {
-              setSelectedId(e.target.value);
-              setMessages([]);
-            }}
-            className="h-9 rounded-4xl border border-input bg-background px-3 text-sm outline-none"
-          >
-            {mailboxes.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name} ({m.email})
-              </option>
-            ))}
-          </select>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={loading || !mailbox}
-            onClick={() => void handleSync()}
-          >
-            <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
-            {loading ? "Syncing..." : "Sync Inbox"}
-          </Button>
-        </div>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Recent messages in <span className="font-medium text-foreground">{mailbox.email}</span>
+        </p>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={loading}
+          onClick={() => void handleSync()}
+        >
+          <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
+          {loading ? "Syncing..." : "Sync Inbox"}
+        </Button>
       </div>
 
       {error && (
@@ -93,7 +71,7 @@ export function InboxView({ mailboxes }: InboxViewProps) {
 
       {messages.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground space-y-2">
+          <CardContent className="py-12 text-center text-sm text-muted-foreground space-y-2">
             <Inbox className="size-6 mx-auto opacity-40" />
             <p>Click &ldquo;Sync Inbox&rdquo; to fetch recent messages via IMAP.</p>
           </CardContent>

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Play, Plus, Send, Trash2 } from "lucide-react";
 
@@ -252,67 +253,57 @@ export function CampaignsView({
 
                 <div className="space-y-1.5">
                   <Label htmlFor="camp-mode">Sending Mode</Label>
-                  <select
+                  <Select
                     id="camp-mode"
                     value={mode}
-                    onChange={(e) => setMode(e.target.value as CampaignMode)}
-                    className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm outline-none"
-                  >
-                    <option value="hitl">
-                      Review &amp; Approve (HITL)
-                    </option>
-                    <option value="auto">
-                      Auto-Send on Schedule
-                    </option>
-                  </select>
+                    onValueChange={setMode}
+                    options={[
+                      { value: "hitl", label: "Review & Approve (HITL)" },
+                      { value: "auto", label: "Auto-Send on Schedule" },
+                    ]}
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="camp-board">Source Board</Label>
-                  <select
+                  <Select
                     id="camp-board"
                     value={boardId}
-                    onChange={(e) => setBoardId(e.target.value)}
-                    className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm outline-none"
-                  >
-                    {boards.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
+                    onValueChange={setBoardId}
+                    placeholder="Select a board..."
+                    options={boards.map((b) => ({
+                      value: b.id,
+                      label: b.name,
+                    }))}
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="camp-email-field">Email Field</Label>
-                  <select
+                  <Select
                     id="camp-email-field"
                     value={emailFieldKey}
-                    onChange={(e) => setEmailFieldKey(e.target.value)}
-                    className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm outline-none"
-                  >
-                    {boardFields.map((f) => (
-                      <option key={f.id} value={f.key}>
-                        {f.name} ({f.key})
-                      </option>
-                    ))}
-                  </select>
+                    onValueChange={setEmailFieldKey}
+                    placeholder="Select email field..."
+                    options={boardFields.map((f) => ({
+                      value: f.key,
+                      label: `${f.name} (${f.key})`,
+                    }))}
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="camp-mailbox">Sender Mailbox</Label>
-                  <select
+                  <Select
                     id="camp-mailbox"
                     value={mailboxId}
-                    onChange={(e) => setMailboxId(e.target.value)}
-                    className="h-9 w-full rounded-4xl border border-input bg-background px-3 text-sm outline-none"
-                  >
-                    {mailboxes.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} ({m.email})
-                      </option>
-                    ))}
-                  </select>
+                    onValueChange={setMailboxId}
+                    placeholder="Select mailbox..."
+                    options={mailboxes.map((m) => ({
+                      value: m.id,
+                      label: `${m.name} (${m.email})`,
+                    }))}
+                  />
                 </div>
               </div>
 

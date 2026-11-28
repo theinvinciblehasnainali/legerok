@@ -14,15 +14,13 @@ import {
 } from "./db";
 import { MailboxesView } from "./components/MailboxesView";
 import { CampaignsView } from "./components/CampaignsView";
-import { OutboxView } from "./components/OutboxView";
-import { InboxView } from "./components/InboxView";
 import { Button } from "@/components/ui/button";
-import { Inbox, Mail, Send, Workflow } from "lucide-react";
+import { Mail, Workflow } from "lucide-react";
 
-type RelayTab = "outbox" | "campaigns" | "inbox" | "mailboxes";
+type RelayTab = "campaigns" | "mailboxes";
 
 function RelayDashboard({ sdk }: { sdk: LegeRokSDK }) {
-  const [tab, setTab] = useState<RelayTab>("outbox");
+  const [tab, setTab] = useState<RelayTab>("mailboxes");
   const [mailboxes, setMailboxes] = useState<RelayMailbox[]>([]);
   const [campaigns, setCampaigns] = useState<RelayCampaign[]>([]);
   const [queue, setQueue] = useState<RelayEmailQueueItem[]>([]);
@@ -94,14 +92,6 @@ function RelayDashboard({ sdk }: { sdk: LegeRokSDK }) {
         <div className="flex flex-wrap gap-1.5">
           <Button
             size="sm"
-            variant={tab === "outbox" ? "default" : "outline"}
-            onClick={() => setTab("outbox")}
-          >
-            <Send className="size-4" />
-            Outbox {pendingCount > 0 ? `(${pendingCount})` : ""}
-          </Button>
-          <Button
-            size="sm"
             variant={tab === "campaigns" ? "default" : "outline"}
             onClick={() => setTab("campaigns")}
           >
@@ -110,38 +100,31 @@ function RelayDashboard({ sdk }: { sdk: LegeRokSDK }) {
           </Button>
           <Button
             size="sm"
-            variant={tab === "inbox" ? "default" : "outline"}
-            onClick={() => setTab("inbox")}
-          >
-            <Inbox className="size-4" />
-            Inbox
-          </Button>
-          <Button
-            size="sm"
             variant={tab === "mailboxes" ? "default" : "outline"}
             onClick={() => setTab("mailboxes")}
           >
             <Mail className="size-4" />
             Mailboxes ({mailboxes.length})
+            {pendingCount > 0 ? ` · ${pendingCount} pending` : ""}
           </Button>
         </div>
       </div>
 
-      {tab === "outbox" && (
-        <OutboxView queue={queue} mailboxes={mailboxes} onChanged={loadAll} />
-      )}
       {tab === "campaigns" && (
         <CampaignsView
           sdk={sdk}
           mailboxes={mailboxes}
           campaigns={campaigns}
           onChanged={loadAll}
-          onGoToOutbox={() => setTab("outbox")}
+          onGoToOutbox={() => setTab("mailboxes")}
         />
       )}
-      {tab === "inbox" && <InboxView mailboxes={mailboxes} />}
       {tab === "mailboxes" && (
-        <MailboxesView mailboxes={mailboxes} onChanged={loadAll} />
+        <MailboxesView
+          mailboxes={mailboxes}
+          queue={queue}
+          onChanged={loadAll}
+        />
       )}
     </div>
   );

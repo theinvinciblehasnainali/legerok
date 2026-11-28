@@ -11,25 +11,24 @@ import { Input } from "@/components/ui/input";
 import { Check, Clock, Send, Trash2 } from "lucide-react";
 
 interface OutboxViewProps {
+  mailbox: RelayMailbox;
   queue: RelayEmailQueueItem[];
-  mailboxes: RelayMailbox[];
   onChanged: () => Promise<void>;
 }
 
-export function OutboxView({ queue, mailboxes, onChanged }: OutboxViewProps) {
+export function OutboxView({ mailbox, queue, onChanged }: OutboxViewProps) {
   const [filter, setFilter] = useState<string>("all");
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editSubject, setEditSubject] = useState("");
   const [editBody, setEditBody] = useState("");
 
-  const filtered = queue.filter((item) =>
+  const mailboxQueue = queue.filter((item) => item.mailbox_id === mailbox.id);
+  const filtered = mailboxQueue.filter((item) =>
     filter === "all" ? true : item.status === filter
   );
 
   async function handleSendNow(item: RelayEmailQueueItem) {
-    const mailbox = mailboxes.find((m) => m.id === item.mailbox_id);
-    if (!mailbox) return;
     setSendingId(item.id);
     try {
       await updateQueueItem(item.id, { status: "sending", error_message: null });
@@ -50,7 +49,7 @@ export function OutboxView({ queue, mailboxes, onChanged }: OutboxViewProps) {
   }
 
   async function handleApproveAll() {
-    const pending = queue.filter((q) => q.status === "pending_approval");
+    const pending = mailboxQueue.filter((q) => q.status === "pending_approval");
     for (const item of pending) {
       await handleSendNow(item);
     }
@@ -68,15 +67,15 @@ export function OutboxView({ queue, mailboxes, onChanged }: OutboxViewProps) {
               onClick={() => setFilter(s)}
             >
               {s === "all"
-                ? `All (${queue.length})`
+                ? `All (${mailboxQueue.length})`
                 : `${s.replace("_", " ")} (${
-                    queue.filter((q) => q.status === s).length
+                    mailboxQueue.filter((q) => q.status === s).length
                   })`}
             </Button>
           ))}
         </div>
 
-        {queue.some((q) => q.status === "pending_approval") && (
+        {mailboxQueue.some((q) => q.status === "pending_approval") && (
           <Button size="sm" onClick={() => void handleApproveAll()}>
             <Check className="size-4" />
             Approve &amp; Send All Pending
@@ -86,8 +85,8 @@ export function OutboxView({ queue, mailboxes, onChanged }: OutboxViewProps) {
 
       {filtered.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No emails in this queue view.
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            No emails in {mailbox.name}&apos;s outbox for this filter.
           </CardContent>
         </Card>
       ) : (
