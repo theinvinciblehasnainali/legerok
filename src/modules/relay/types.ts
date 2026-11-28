@@ -85,4 +85,19 @@ export interface InboxMessage {
   from: string;
   date: string;
   snippet: string;
+  body_text: string;
+  body_html: string;
+}
+
+export interface StoredInboxMessage {
+  id: string;
+  mailbox_id: string;
+  uid: number;
+  subject: string;
+  from_addr: string;
+  date_str: string;
+  snippet: string;
+  body_text: string;
+  body_html: string;
+  created_at: string;
 }

@@ -1,6 +1,6 @@
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
-use mailparse::{parse_mail, MailHeaderMap};
+use mailparse::{parse_mail, MailHeaderMap, ParsedMail};
 use native_tls::TlsConnector;
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +23,27 @@ pub struct InboxMessage {
     pub from: String,
     pub date: String,
     pub snippet: String,
+    pub body_text: String,
+    pub body_html: String,
+}
+
+fn extract_bodies(parsed: &ParsedMail, text_out: &mut String, html_out: &mut String) {
+    if parsed.subparts.is_empty() {
+        let mime = parsed.ctype.mimetype.to_lowercase();
+        if mime == "text/plain" && text_out.is_empty() {
+            if let Ok(body) = parsed.get_body() {
+                *text_out = body;
+            }
+        } else if mime == "text/html" && html_out.is_empty() {
+            if let Ok(body) = parsed.get_body() {
+                *html_out = body;
+            }
+        }
+    } else {
+        for part in &parsed.subparts {
+            extract_bodies(part, text_out, html_out);
+        }
+    }
 }
 
 fn build_smtp_transport(config: &MailboxConfig) -> Result<SmtpTransport, String> {
@@ -116,6 +137,7 @@ pub async fn send_smtp_email(
 pub async fn fetch_imap_inbox(
     config: MailboxConfig,
     limit: usize,
+    since_uid: Option<u32>,
 ) -> Result<Vec<InboxMessage>, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let mut session = connect_imap(&config)?;
@@ -129,20 +151,31 @@ pub async fn fetch_imap_inbox(
             return Ok(Vec::new());
         }
 
-        let start = if total > limit as u32 {
-            total - limit as u32 + 1
+        let messages = if let Some(last_uid) = since_uid {
+            let range = format!("{}:*", last_uid.saturating_add(1));
+            session
+                .uid_fetch(range, "(UID RFC822)")
+                .map_err(|e| format!("Failed to fetch new messages: {}", e))?
         } else {
-            1
+            let start = if total > limit as u32 {
+                total - limit as u32 + 1
+            } else {
+                1
+            };
+            let range = format!("{}:{}", start, total);
+            session
+                .fetch(range, "(UID RFC822)")
+                .map_err(|e| format!("Failed to fetch messages: {}", e))?
         };
-        let range = format!("{}:{}", start, total);
-
-        let messages = session
-            .fetch(range, "(UID RFC822)")
-            .map_err(|e| format!("Failed to fetch messages: {}", e))?;
 
         let mut results = Vec::new();
         for msg in messages.iter() {
             let uid = msg.uid.unwrap_or(0);
+            if let Some(last_uid) = since_uid {
+                if uid <= last_uid {
+                    continue;
+                }
+            }
             if let Some(raw) = msg.body() {
                 if let Ok(parsed) = parse_mail(raw) {
                     let headers = parsed.get_headers();
@@ -156,8 +189,20 @@ pub async fn fetch_imap_inbox(
                         .get_first_value("Date")
                         .unwrap_or_else(|| "".to_string());
 
-                    let body_text = parsed.get_body().unwrap_or_default();
-                    let snippet: String = body_text
+                    let mut body_text = String::new();
+                    let mut body_html = String::new();
+                    extract_bodies(&parsed, &mut body_text, &mut body_html);
+
+                    if body_text.is_empty() && body_html.is_empty() {
+                        body_text = parsed.get_body().unwrap_or_default();
+                    }
+
+                    let snippet_source = if !body_text.is_empty() {
+                        body_text.clone()
+                    } else {
+                        body_html.replace(|c: char| c == '<' || c == '>', " ")
+                    };
+                    let snippet: String = snippet_source
                         .split_whitespace()
                         .collect::<Vec<_>>()
                         .join(" ")
@@ -171,6 +216,8 @@ pub async fn fetch_imap_inbox(
                         from,
                         date,
                         snippet,
+                        body_text,
+                        body_html,
                     });
                 }
             }

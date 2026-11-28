@@ -134,6 +134,30 @@ pub fn run() {
             "#,
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 4,
+            description: "add_relay_inbox_messages",
+            sql: r#"
+                CREATE TABLE IF NOT EXISTS relay_inbox_messages (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    mailbox_id TEXT NOT NULL,
+                    uid INTEGER NOT NULL,
+                    subject TEXT NOT NULL,
+                    from_addr TEXT NOT NULL,
+                    date_str TEXT NOT NULL,
+                    snippet TEXT NOT NULL DEFAULT '',
+                    body_text TEXT NOT NULL DEFAULT '',
+                    body_html TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (mailbox_id) REFERENCES relay_mailboxes(id) ON DELETE CASCADE,
+                    UNIQUE(mailbox_id, uid)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_relay_inbox_mailbox_uid
+                ON relay_inbox_messages(mailbox_id, uid DESC);
+            "#,
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

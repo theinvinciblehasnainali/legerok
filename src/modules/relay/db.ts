@@ -10,6 +10,7 @@ import type {
   RelayEmailQueueItem,
   RelayMailbox,
   RelaySequenceStep,
+  StoredInboxMessage,
 } from "./types";
 
 // --- Mailboxes ---
@@ -117,14 +118,59 @@ export async function sendEmailViaMailbox(
   });
 }
 
-export async function fetchMailboxInbox(
+export async function getStoredInboxMessages(
+  mailboxId: string
+): Promise<StoredInboxMessage[]> {
+  const db = await getDb();
+  return await db.select<StoredInboxMessage[]>(
+    "SELECT * FROM relay_inbox_messages WHERE mailbox_id = $1 ORDER BY uid DESC",
+    [mailboxId]
+  );
+}
+
+export async function syncMailboxInbox(
   mailbox: RelayMailbox,
   limit = 25
-): Promise<InboxMessage[]> {
-  return await invoke<InboxMessage[]>("fetch_imap_inbox", {
+): Promise<{ addedCount: number; messages: StoredInboxMessage[] }> {
+  const db = await getDb();
+  const maxRows = await db.select<{ max_uid: number | null }[]>(
+    "SELECT MAX(uid) as max_uid FROM relay_inbox_messages WHERE mailbox_id = $1",
+    [mailbox.id]
+  );
+  const maxUid = maxRows[0]?.max_uid ?? null;
+
+  const fetched = await invoke<InboxMessage[]>("fetch_imap_inbox", {
     config: toRustConfig(mailbox),
     limit,
+    sinceUid: maxUid,
   });
+
+  const now = new Date().toISOString();
+  let addedCount = 0;
+
+  for (const msg of fetched) {
+    const res = await db.execute(
+      `INSERT OR IGNORE INTO relay_inbox_messages
+        (id, mailbox_id, uid, subject, from_addr, date_str, snippet, body_text, body_html, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [
+        uuidv4(),
+        mailbox.id,
+        msg.uid,
+        msg.subject,
+        msg.from,
+        msg.date,
+        msg.snippet,
+        msg.body_text,
+        msg.body_html,
+        now,
+      ]
+    );
+    if (res.rowsAffected > 0) addedCount++;
+  }
+
+  const messages = await getStoredInboxMessages(mailbox.id);
+  return { addedCount, messages };
 }
 
 export async function deleteMailboxMessage(
@@ -135,6 +181,11 @@ export async function deleteMailboxMessage(
     config: toRustConfig(mailbox),
     uid,
   });
+  const db = await getDb();
+  await db.execute(
+    "DELETE FROM relay_inbox_messages WHERE mailbox_id = $1 AND uid = $2",
+    [mailbox.id, uid]
+  );
 }
 
 // --- Campaigns ---
